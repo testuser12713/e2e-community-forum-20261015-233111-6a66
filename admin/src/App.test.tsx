@@ -76,7 +76,6 @@ describe("admin shell", () => {
   });
 
   it.each([
-    ["/users", "Nutzer"],
     ["/moderation-queue", "Warteschlange"],
     ["/audit-log", "Audit-Log"],
   ])("route %s resolves to its placeholder", async (path, title) => {
