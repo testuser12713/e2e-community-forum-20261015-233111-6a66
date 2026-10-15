@@ -204,7 +204,12 @@ def test_run_once_processes_the_due_jobs(
 ) -> None:
     from main import run_once
 
-    enqueue_job(db, "notification.create", {"user_id": 1}, run_at=T0)
+    enqueue_job(
+        db,
+        "notification.create",
+        {"user_id": 1, "type": "reply", "actor_id": None, "thread_id": None, "comment_id": None},
+        run_at=T0,
+    )
     db.commit()
 
     scheduler = Scheduler(hot_score_interval=99999, session_cleanup_interval=99999)
