@@ -53,10 +53,9 @@ describe("forum shell", () => {
   });
 
   // Only routes that are still placeholders. /new and /t/:id/edit are
-  // implemented by the thread editor and are covered by its own test file.
+  // implemented by the thread editor, /login and /register by the auth pages —
+  // each covered by its own test file.
   const routes: Array<[string, string]> = [
-    ["/login", "Anmelden"],
-    ["/register", "Registrieren"],
     ["/t/42", "Thread"],
     // "/search" is implemented by its own ticket and no longer a placeholder.
     ["/u/alice", "Profil"],
@@ -71,6 +70,18 @@ describe("forum shell", () => {
       screen.getByRole("heading", { name: title, level: 1 }),
     ).toBeInTheDocument();
     expect(screen.getAllByText("In Arbeit").length).toBeGreaterThan(0);
+  });
+
+  it.each([
+    ["/login", "Anmelden"],
+    ["/register", "Registrieren"],
+  ])("renders the real auth form at %s", (path, title) => {
+    navigate(path);
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { name: title, level: 1 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("In Arbeit")).not.toBeInTheDocument();
   });
 
   it("shows a placeholder for an unknown route", () => {
