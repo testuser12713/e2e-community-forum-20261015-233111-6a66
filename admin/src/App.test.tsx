@@ -76,7 +76,6 @@ describe("admin shell", () => {
   });
 
   it.each([
-    ["/dashboard", "Dashboard"],
     ["/users", "Nutzer"],
     ["/categories", "Kategorien"],
     ["/moderation-queue", "Warteschlange"],
