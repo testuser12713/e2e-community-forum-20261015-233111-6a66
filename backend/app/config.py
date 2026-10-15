@@ -25,6 +25,17 @@ def _require(name: str) -> str:
     return value
 
 
+def _int_env(name: str, default: int, *, minimum: int = 1) -> int:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, value)
+
+
 def _parse_origins(raw: str) -> list[str]:
     origins: list[str] = []
     for part in raw.split(","):
@@ -50,7 +61,10 @@ class Settings:
         origins = _parse_origins(raw_origins)
         self.cors_origins: list[str] = origins or list(_DEFAULT_CORS_ORIGINS)
 
-        self.rate_limit_per_minute: int = int(os.environ.get("RATE_LIMIT_PER_MINUTE", "30"))
+        # Write rate limiting: at most ``rate_limit_per_minute`` writes per
+        # ``rate_limit_window_seconds`` sliding window, per user.
+        self.rate_limit_per_minute: int = _int_env("RATE_LIMIT_PER_MINUTE", 30)
+        self.rate_limit_window_seconds: int = _int_env("RATE_LIMIT_WINDOW_SECONDS", 60)
 
     @property
     def access_token_ttl(self) -> int:
