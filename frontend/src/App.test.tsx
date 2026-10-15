@@ -53,13 +53,13 @@ describe("forum shell", () => {
   });
 
   // Only routes that are still placeholders. /new and /t/:id/edit are
-  // implemented by the thread editor, /login and /register by the auth pages,
-  // /search by the search page, /u/:username and /settings by the profile and
-  // settings pages, /notifications by the notification bell — each covered by
-  // its own test file.
-  const routes: Array<[string, string]> = [
-    ["/t/42", "Thread"],
-  ];
+  // implemented by the thread editor, /t/:id by the thread detail page,
+  // /login and /register by the auth pages, /search by the search page,
+  // /u/:username and /settings by the profile and settings pages, and
+  // /notifications by the notification bell — each covered by its own test
+  // file. Every named route now has its own page, so no placeholder cases
+  // remain here.
+  const routes: Array<[string, string]> = [];
 
   it.each(routes)("resolves route %s to its placeholder", (path, title) => {
     navigate(path);

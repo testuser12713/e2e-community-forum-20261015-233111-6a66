@@ -15,5 +15,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: "./src/setupTests.ts",
     css: false,
+    // Tests assert the API paths the client sends (relative to the base). Pin
+    // the base to the empty string so the assertions are deterministic and do
+    // not depend on VITE_API_BASE_URL leaking in from the shell or RUN.json.
+    env: { VITE_API_BASE_URL: "" },
   },
 });
