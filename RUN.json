@@ -180,6 +180,9 @@
         },
         "RATE_LIMIT_PER_MINUTE": {
           "dev": "30"
+        },
+        "RATE_LIMIT_WINDOW_SECONDS": {
+          "dev": "60"
         }
       }
     }
