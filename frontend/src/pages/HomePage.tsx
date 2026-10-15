@@ -1,7 +1,13 @@
-import { Placeholder } from "../components/Placeholder";
+import { ThreadFeed } from "../components/ThreadFeed";
 
+/** The start page: the paginated thread feed across all categories. */
 export function HomePage() {
-  return <Placeholder title="Startseite" hint="Die Thread-Liste wird hier angezeigt." />;
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="text-2xl font-semibold">Startseite</h1>
+      <ThreadFeed />
+    </div>
+  );
 }
 
 export default HomePage;
