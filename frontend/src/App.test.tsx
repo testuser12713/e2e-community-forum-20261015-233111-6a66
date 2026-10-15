@@ -52,14 +52,14 @@ describe("forum shell", () => {
     ).toBeInTheDocument();
   });
 
+  // Only routes that are still placeholders. /new and /t/:id/edit are
+  // implemented by the thread editor and are covered by its own test file.
   const routes: Array<[string, string]> = [
     ["/", "Startseite"],
     ["/login", "Anmelden"],
     ["/register", "Registrieren"],
     ["/c/allgemein", "Kategorie"],
     ["/t/42", "Thread"],
-    ["/new", "Thread erstellen"],
-    ["/t/42/edit", "Thread bearbeiten"],
     ["/search", "Suche"],
     ["/u/alice", "Profil"],
     ["/settings", "Einstellungen"],
