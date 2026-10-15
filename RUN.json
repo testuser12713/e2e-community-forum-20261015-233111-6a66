@@ -6,8 +6,19 @@
       "dir": "admin",
       "stack": "web-vite",
       "kind": "server",
-      "install": [["npm", "ci"]],
-      "build": [["npm", "run", "build"]],
+      "install": [
+        [
+          "npm",
+          "ci"
+        ]
+      ],
+      "build": [
+        [
+          "npm",
+          "run",
+          "build"
+        ]
+      ],
       "start": [
         "npm",
         "run",
@@ -21,10 +32,67 @@
       ],
       "port": 5174,
       "port_env": "PORT",
-      "health": { "path": "/", "expect_status": [200] },
+      "health": {
+        "path": "/",
+        "expect_status": [
+          200
+        ]
+      },
       "env": {
-        "VITE_API_BASE_URL": { "dev": "${service:api.origin}" }
+        "VITE_API_BASE_URL": {
+          "dev": "${service:api.origin}"
+        }
       }
+    },
+    {
+      "name": "db",
+      "kind": "database",
+      "engine": "postgres"
+    },
+    {
+      "name": "worker",
+      "dir": "worker",
+      "stack": "python",
+      "kind": "worker",
+      "install": [
+        [
+          "${python}",
+          "-m",
+          "pip",
+          "install",
+          "-q",
+          "-r",
+          "requirements.txt"
+        ]
+      ],
+      "start": [
+        "${python}",
+        "main.py"
+      ],
+      "depends_on": [
+        "db"
+      ],
+      "env": {
+        "DATABASE_URL": {
+          "dev": "${service:db.url}"
+        },
+        "WORKER_POLL_INTERVAL": {
+          "dev": "5"
+        },
+        "HOT_SCORE_INTERVAL": {
+          "dev": "300"
+        },
+        "SESSION_CLEANUP_INTERVAL": {
+          "dev": "3600"
+        }
+      },
+      "test": [
+        [
+          "${python}",
+          "-m",
+          "pytest"
+        ]
+      ]
     }
   ]
 }
