@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens from DESIGN.md — admin panel.
+ * Light values live on :root, the mirrored dark twins under `.dark`.
+ * The app toggles `.dark` on <html>; there is never a second stylesheet.
+ */
+:root {
+  --color-bg: #ffffff;
+  --color-bg-subtle: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-surface-raised: #ffffff;
+  --color-fg: #15171c;
+  --color-fg-muted: #636b78;
+  --color-fg-subtle: #8a919e;
+  --color-border: #e3e6eb;
+  --color-border-strong: #c9cfd8;
+  --color-accent: #4f46e5;
+  --color-accent-hover: #4338ca;
+  --color-accent-active: #3730a3;
+  --color-accent-soft: #eef0ff;
+  --color-accent-contrast: #ffffff;
+  --color-upvote: #4f46e5;
+  --color-downvote: #64748b;
+  --color-success: #157f3d;
+  --color-success-soft: #e7f6ec;
+  --color-warning: #b45309;
+  --color-warning-soft: #fdf3e3;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fdecec;
+  --color-info: #0369a1;
+  --color-info-soft: #e6f2f9;
+  --color-overlay: rgba(15, 17, 22, 0.45);
+
+  /* Spacing scale (4px base unit) */
+  --space-0: 4px;
+  --space-1: 8px;
+  --space-2: 12px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --space-7: 64px;
+
+  color-scheme: light;
+}
+
+.dark {
+  --color-bg: #0d1015;
+  --color-bg-subtle: #14181f;
+  --color-surface: #171b23;
+  --color-surface-raised: #1d222b;
+  --color-fg: #e8ebf0;
+  --color-fg-muted: #9ba4b3;
+  --color-fg-subtle: #737d8c;
+  --color-border: #262c36;
+  --color-border-strong: #39414e;
+  --color-accent: #818cf8;
+  --color-accent-hover: #a5b4fc;
+  --color-accent-active: #c7d2fe;
+  --color-accent-soft: #232a4d;
+  --color-accent-contrast: #0d1015;
+  --color-upvote: #818cf8;
+  --color-downvote: #7c8797;
+  --color-success: #4ade80;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+  --color-info: #38bdf8;
+
+  color-scheme: dark;
+}
+
+* {
+  border-color: var(--color-border);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
