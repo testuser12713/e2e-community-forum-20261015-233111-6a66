@@ -36,14 +36,14 @@ def _make_token(
     user_id: int,
     *,
     expires_at: datetime,
-    revoked_at: datetime | None = None,
+    revoked: bool = False,
 ) -> RefreshToken:
     token = RefreshToken(
         user_id=user_id,
         token_hash=uuid.uuid4().hex,
         family_id=uuid.uuid4().hex,
         expires_at=expires_at,
-        revoked_at=revoked_at,
+        revoked=revoked,
     )
     db.add(token)
     db.flush()
@@ -71,7 +71,7 @@ def test_handle_deletes_expired_and_revoked_but_keeps_valid(sessions: Session) -
         sessions,
         user.id,
         expires_at=now + timedelta(days=30),
-        revoked_at=now - timedelta(minutes=1),
+        revoked=True,
     )
     valid = _make_token(sessions, user.id, expires_at=now + timedelta(days=30))
     expired_id, revoked_id = expired.id, revoked.id
@@ -103,7 +103,7 @@ def test_valid_token_survives_and_can_still_refresh(sessions: Session) -> None:
     usable = sessions.scalar(
         select(RefreshToken).where(
             RefreshToken.token_hash == valid_hash,
-            RefreshToken.revoked_at.is_(None),
+            RefreshToken.revoked.is_(False),
             RefreshToken.expires_at > datetime.now(UTC),
         )
     )
@@ -124,7 +124,7 @@ def test_handle_uses_one_bulk_delete_per_category(sessions: Session) -> None:
         sessions,
         user.id,
         expires_at=now + timedelta(days=30),
-        revoked_at=now - timedelta(minutes=1),
+        revoked=True,
     )
     sessions.commit()
 

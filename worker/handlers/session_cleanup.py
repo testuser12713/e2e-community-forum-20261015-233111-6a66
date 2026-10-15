@@ -25,4 +25,4 @@ def handle(db: Session, payload: dict[str, Any]) -> None:
     """
     now = datetime.now(UTC)
     db.execute(delete(RefreshToken).where(RefreshToken.expires_at <= now))
-    db.execute(delete(RefreshToken).where(RefreshToken.revoked_at.is_not(None)))
+    db.execute(delete(RefreshToken).where(RefreshToken.revoked.is_(True)))
