@@ -12,7 +12,6 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.deps import get_db, require_active_writer
-from app.errors import not_implemented
 from app.models import User
 from app.schemas.common import ThreadDetail
 from app.schemas.thread import ThreadCreate, ThreadUpdate
@@ -93,8 +92,3 @@ def delete_thread(
 ) -> None:
     """Soft-delete one's own thread."""
     thread_service.delete_thread(db, thread_id=id, user=user)
-
-
-@router.post("/api/v1/threads/{id}/moderate", dependencies=[Depends(rate_limit_write)])
-def moderate_thread(id: int) -> None:
-    raise not_implemented("POST /api/v1/threads/{id}/moderate is implemented by ticket #37")
