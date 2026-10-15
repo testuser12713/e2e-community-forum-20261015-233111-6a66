@@ -60,7 +60,11 @@ def _is_limited_write(request: Request) -> bool:
             return request.method.upper() == "POST"
         return False
     if resource == "comments":
-        return len(rest) == 1 and request.method.upper() in ("PATCH", "DELETE")
+        if len(rest) == 1:
+            return request.method.upper() in ("PATCH", "DELETE")
+        if len(rest) == 2 and rest[1] == "vote":
+            return request.method.upper() == "POST"
+        return False
     if resource == "reports":
         return not rest and request.method.upper() == "POST"
     return False

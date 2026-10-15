@@ -68,3 +68,13 @@ def test_report_write_is_throttled(client: TestClient) -> None:
     for _ in range(3):
         assert client.post("/api/v1/reports").status_code != 429
     assert client.post("/api/v1/reports").status_code == 429
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["/api/v1/threads/1/vote", "/api/v1/comments/1/vote"],
+)
+def test_vote_writes_are_throttled(client: TestClient, path: str) -> None:
+    for _ in range(3):
+        assert client.post(path).status_code != 429
+    assert client.post(path).status_code == 429
