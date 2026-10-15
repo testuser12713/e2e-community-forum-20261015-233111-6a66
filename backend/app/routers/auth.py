@@ -1,24 +1,32 @@
 """Authentication routes.
 
-Registration and login are implemented here; refresh rotation, logout and
-password change belong to the follow-up ticket and keep their stubs (they answer
-501 until that ticket fills them).
+Registration, login and the refresh-token lifecycle live here: refresh rotation
+with theft detection, logout and password change. Every failure is raised
+through the shared error envelope and refresh tokens are only ever stored as
+hashes.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Cookie, Depends, Response
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.errors import api_error, not_implemented
-from app.schemas.auth import LoginInput, RegisterInput
+from app.deps import get_current_user
+from app.errors import api_error
+from app.models import User
+from app.schemas.auth import ChangePasswordInput, LoginInput, RegisterInput
 from app.schemas.common import AuthOut, UserMe, UserOut
 from app.security import create_access_token
 from app.services.auth import (
+    REFRESH_COOKIE_NAME,
     authenticate_user,
+    change_password,
+    clear_refresh_cookie,
     create_refresh_token,
     create_user,
+    revoke_session_for_token,
+    rotate_refresh_token,
     set_refresh_cookie,
 )
 from app.services.ratelimit import rate_limit_write
@@ -76,18 +84,66 @@ def login(
     )
 
 
-@router.post("/api/v1/auth/refresh", dependencies=[Depends(rate_limit_write)])
-def refresh() -> None:
-    raise not_implemented("POST /api/v1/auth/refresh is implemented by ticket #17")
+@router.post(
+    "/api/v1/auth/refresh",
+    response_model=AuthOut,
+    dependencies=[Depends(rate_limit_write)],
+)
+def refresh(
+    response: Response,
+    db: Session = Depends(get_db),
+    refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
+) -> AuthOut:
+    """Rotate the refresh cookie and answer a fresh access token.
 
-
-@router.post("/api/v1/auth/logout", status_code=204, dependencies=[Depends(rate_limit_write)])
-def logout() -> None:
-    raise not_implemented("POST /api/v1/auth/logout is implemented by ticket #17")
+    A missing, unknown, expired or already-rotated token answers 401; replaying a
+    rotated token additionally revokes every token of its session family.
+    """
+    if not refresh_token:
+        raise api_error(401, "Kein Refresh-Token vorhanden.", code="unauthorized")
+    user, raw_refresh = rotate_refresh_token(db, refresh_token)
+    set_refresh_cookie(response, raw_refresh)
+    access_token = create_access_token(user.id, user.role)
+    return AuthOut(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=900,
+        user=UserMe.model_validate(user),
+    )
 
 
 @router.post(
-    "/api/v1/auth/change-password", status_code=204, dependencies=[Depends(rate_limit_write)]
+    "/api/v1/auth/logout",
+    status_code=204,
+    dependencies=[Depends(rate_limit_write)],
 )
-def change_password() -> None:
-    raise not_implemented("POST /api/v1/auth/change-password is implemented by ticket #17")
+def logout(
+    response: Response,
+    db: Session = Depends(get_db),
+    refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
+) -> None:
+    """Revoke the presented session and clear the refresh cookie."""
+    if refresh_token:
+        revoke_session_for_token(db, refresh_token)
+    clear_refresh_cookie(response)
+
+
+@router.post(
+    "/api/v1/auth/change-password",
+    status_code=204,
+    dependencies=[Depends(rate_limit_write)],
+)
+def change_password_route(
+    payload: ChangePasswordInput,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+    refresh_token: str | None = Cookie(default=None, alias=REFRESH_COOKIE_NAME),
+) -> None:
+    """Change the signed-in user's password, keeping this session alive."""
+    change_password(
+        db,
+        user,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+        current_raw_token=refresh_token,
+    )
