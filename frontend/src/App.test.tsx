@@ -58,7 +58,7 @@ describe("forum shell", () => {
     ["/login", "Anmelden"],
     ["/register", "Registrieren"],
     ["/t/42", "Thread"],
-    ["/search", "Suche"],
+    // "/search" is implemented by its own ticket and no longer a placeholder.
     ["/u/alice", "Profil"],
     ["/settings", "Einstellungen"],
     ["/notifications", "Benachrichtigungen"],
