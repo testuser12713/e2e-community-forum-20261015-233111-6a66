@@ -1,9 +1,12 @@
 """Write rate limiting: a per-user sliding window.
 
-The dependency is declared on every write route (threads, comments, votes,
-reports, ...). Reads never pass through it. The limit and the length of the
-window come from the environment via :mod:`app.config`; the window state lives
-in the API process, one bucket per authenticated user, falling back to the
+The spec scopes write throttling to the content writes (threads, comments,
+votes, reports), so the guard enforces a limit only there. It is declared on a
+broad set of write routes, but :func:`_is_limited_write` narrows it to exactly
+those four resources: an auth-session, subscription, moderation, admin or read
+request is never counted and can never answer 429. The limit and the length of
+the window come from the environment via :mod:`app.config`; the window state
+lives in the API process, one bucket per authenticated user, falling back to the
 client address for an unauthenticated caller.
 """
 
@@ -26,6 +29,41 @@ _BEARER_PREFIX = "bearer "
 
 _lock = threading.Lock()
 _events: dict[str, deque[float]] = {}
+
+
+_READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+def _is_limited_write(request: Request) -> bool:
+    """Return whether this request targets a spec-scoped content write.
+
+    Only ``Threads``, ``Kommentare``, ``Votes`` and ``Meldungen`` are throttled
+    (SPEC: "Ratenbegrenzung beim Schreiben (Threads, Kommentare, Votes,
+    Meldungen)"). Everything else the guard happens to be declared on — the auth
+    session routes, subscriptions, moderation, admin management, profile edits
+    and every read — is out of scope and must keep its regular status code, in
+    particular while an unrelated caller's write bucket is exhausted.
+    """
+    if request.method.upper() in _READ_METHODS:
+        return False
+    segments = [part for part in request.url.path.split("/") if part]
+    if len(segments) < 3 or segments[0] != "api" or segments[1] != "v1":
+        return False
+    resource, rest = segments[2], segments[3:]
+
+    if resource == "threads":
+        if not rest:
+            return request.method.upper() == "POST"
+        if len(rest) == 1:
+            return request.method.upper() in ("PATCH", "DELETE")
+        if len(rest) == 2 and rest[1] in ("vote", "comments"):
+            return request.method.upper() == "POST"
+        return False
+    if resource == "comments":
+        return len(rest) == 1 and request.method.upper() in ("PATCH", "DELETE")
+    if resource == "reports":
+        return not rest and request.method.upper() == "POST"
+    return False
 
 
 def _caller_key(request: Request) -> str:
@@ -67,6 +105,8 @@ def rate_limit_write(request: Request) -> None:
     Raises a 429 in the shared error envelope carrying a ``Retry-After`` header
     naming the seconds until the next attempt is allowed.
     """
+    if not _is_limited_write(request):
+        return
     settings = get_settings()
     limit = settings.rate_limit_per_minute
     if limit <= 0:
