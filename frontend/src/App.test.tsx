@@ -53,13 +53,11 @@ describe("forum shell", () => {
   });
 
   // Only routes that are still placeholders. /new and /t/:id/edit are
-  // implemented by the thread editor, /login and /register by the auth pages —
-  // each covered by its own test file.
+  // implemented by the thread editor, /login and /register by the auth pages,
+  // /search by the search page, /u/:username and /settings by the profile and
+  // settings pages — each covered by its own test file.
   const routes: Array<[string, string]> = [
     ["/t/42", "Thread"],
-    // "/search" is implemented by its own ticket and no longer a placeholder.
-    ["/u/alice", "Profil"],
-    ["/settings", "Einstellungen"],
     ["/notifications", "Benachrichtigungen"],
   ];
 
