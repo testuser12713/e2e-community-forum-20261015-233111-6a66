@@ -8,11 +8,17 @@ models onto the database for the tests.
 
 One table is not in the worker's own models but is required by the real schema:
 ``thread.category_id`` carries the ``thread_category_id_fkey`` foreign key to
-``category``. The tests create threads pointing at ``DEFAULT_CATEGORY_ID``, so
-this module mirrors the ``category`` table as well and seeds that one row.
+``category``. A thread cannot be inserted without a matching ``category`` row,
+so this module mirrors the ``category`` table (making ``create_all`` build it on
+a completely empty database) and hands every thread-creating test a factory that
+provisions its own category and removes it again — the same "provision and clean
+up only what you created" pattern the backend suites use.
 """
 
 from __future__ import annotations
+
+from collections.abc import Iterator
+from uuid import uuid4
 
 import pytest
 from db import Base, get_engine, get_session_factory
@@ -26,15 +32,10 @@ from sqlalchemy import (
     Text,
     delete,
     func,
-    select,
+    insert,
 )
-from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
-
-# The category id every thread-creating test points at. It is seeded once per
-# session, so the ``thread_category_id_fkey`` constraint is satisfied.
-DEFAULT_CATEGORY_ID = 1
 
 # Test-side mirror of the migration's ``category`` table. Defining it on the
 # shared metadata makes ``create_all`` build it on a completely empty database;
@@ -56,6 +57,45 @@ category_table = Table(
 )
 
 
+class CategoryFactory:
+    """Creates category rows for a single test and deletes exactly those rows.
+
+    The backend suites provision their own category per test; the worker mirrors
+    that. A created row is flushed (so the caller's ``Thread`` insert sees it)
+    but not committed, so a test that rolls its transaction back leaves nothing
+    behind; a test that commits calls :meth:`cleanup` after it has removed the
+    threads that referenced the category.
+    """
+
+    def __init__(self, db: Session) -> None:
+        self._db = db
+        self._ids: list[int] = []
+
+    def create(self) -> int:
+        """Insert a fresh category and return its id."""
+        suffix = uuid4().hex[:10]
+        category_id = self._db.execute(
+            insert(category_table)
+            .values(
+                name=f"Worker Test Category {suffix}",
+                slug=f"worker-test-category-{suffix}",
+                description=None,
+                position=0,
+            )
+            .returning(category_table.c.id)
+        ).scalar_one()
+        self._ids.append(category_id)
+        return category_id
+
+    def cleanup(self) -> None:
+        """Delete every category this factory created and commit."""
+        if not self._ids:
+            return
+        self._db.execute(delete(category_table).where(category_table.c.id.in_(self._ids)))
+        self._db.commit()
+        self._ids.clear()
+
+
 @pytest.fixture(scope="session")
 def engine() -> Engine:
     eng = get_engine()
@@ -63,25 +103,10 @@ def engine() -> Engine:
     return eng
 
 
-@pytest.fixture(scope="session", autouse=True)
-def seed_default_category(engine: Engine) -> None:
-    """Guarantee ``DEFAULT_CATEGORY_ID`` exists for every thread insert."""
-    with engine.begin() as conn:
-        exists = conn.scalar(
-            select(category_table.c.id).where(category_table.c.id == DEFAULT_CATEGORY_ID)
-        )
-        if exists is None:
-            conn.execute(
-                insert(category_table)
-                .values(
-                    id=DEFAULT_CATEGORY_ID,
-                    name="Worker Test Category",
-                    slug="worker-test-category",
-                    description=None,
-                    position=0,
-                )
-                .on_conflict_do_nothing(index_elements=["id"])
-            )
+@pytest.fixture()
+def categories(db: Session) -> Iterator[CategoryFactory]:
+    """A per-test category factory bound to the test's session."""
+    yield CategoryFactory(db)
 
 
 @pytest.fixture()

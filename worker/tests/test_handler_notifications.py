@@ -17,6 +17,8 @@ from models import Comment, Job, Notification, Thread, User
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from tests.conftest import CategoryFactory
+
 T0 = datetime(2026, 1, 1, 12, 0, 0, tzinfo=UTC)
 LATER = T0 + timedelta(minutes=5)
 
@@ -54,11 +56,11 @@ def _make_user(db: Session, label: str) -> User:
 
 
 @pytest.fixture()
-def provisioned(db: Session) -> Provisioned:
+def provisioned(db: Session, categories: CategoryFactory) -> Provisioned:
     actor = _make_user(db, "actor")
     target = _make_user(db, "target")
     thread = Thread(
-        category_id=1,
+        category_id=categories.create(),
         author_id=actor.id,
         title="Notification handler test thread",
         body_markdown="body",
@@ -90,6 +92,7 @@ def provisioned(db: Session) -> Provisioned:
     db.execute(delete(Thread).where(Thread.id.in_(thread_ids)))
     db.execute(delete(User).where(User.id.in_(user_ids)))
     db.commit()
+    categories.cleanup()
 
 
 def test_queued_job_creates_exactly_one_notification(db: Session, provisioned: Provisioned) -> None:
@@ -137,9 +140,17 @@ def test_same_payload_twice_does_not_duplicate(db: Session, provisioned: Provisi
     assert len(rows) == 1
 
 
-def test_missing_target_user_skips_insert_and_completes_job(db: Session) -> None:
+def test_missing_target_user_skips_insert_and_completes_job(
+    db: Session, categories: CategoryFactory
+) -> None:
     actor = _make_user(db, "actor")
-    thread = Thread(category_id=1, author_id=actor.id, title="orphan target", body_markdown="")
+    category_id = categories.create()
+    thread = Thread(
+        category_id=category_id,
+        author_id=actor.id,
+        title="orphan target",
+        body_markdown="",
+    )
     db.add(thread)
     db.flush()
     payload = {
@@ -165,3 +176,4 @@ def test_missing_target_user_skips_insert_and_completes_job(db: Session) -> None
         db.execute(delete(Thread).where(Thread.author_id == actor.id))
         db.execute(delete(User).where(User.id == actor.id))
         db.commit()
+        categories.cleanup()

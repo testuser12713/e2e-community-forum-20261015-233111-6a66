@@ -17,6 +17,8 @@ from models import Thread, User
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from tests.conftest import CategoryFactory
+
 SENTINEL = -999.0
 
 
@@ -36,6 +38,7 @@ def _make_user(db: Session) -> User:
 def _make_thread(
     db: Session,
     author: User,
+    category_id: int,
     *,
     score: int,
     age_days: float,
@@ -45,7 +48,7 @@ def _make_thread(
 ) -> Thread:
     now = datetime.now(UTC)
     thread = Thread(
-        category_id=1,
+        category_id=category_id,
         author_id=author.id,
         title="Thread",
         body_markdown="Body",
@@ -61,10 +64,13 @@ def _make_thread(
     return thread
 
 
-def test_newer_thread_with_fewer_votes_outranks_older_with_more(db: Session) -> None:
+def test_newer_thread_with_fewer_votes_outranks_older_with_more(
+    db: Session, categories: CategoryFactory
+) -> None:
     author = _make_user(db)
-    older = _make_thread(db, author, score=500, age_days=30)
-    newer = _make_thread(db, author, score=2, age_days=0)
+    category_id = categories.create()
+    older = _make_thread(db, author, category_id, score=500, age_days=30)
+    newer = _make_thread(db, author, category_id, score=2, age_days=0)
     db.flush()
 
     hot_score.handle(db, {"thread_ids": None})
@@ -77,10 +83,13 @@ def test_newer_thread_with_fewer_votes_outranks_older_with_more(db: Session) -> 
     assert newer_row.hot_score > 0
 
 
-def test_payload_thread_ids_restricts_the_update(db: Session) -> None:
+def test_payload_thread_ids_restricts_the_update(db: Session, categories: CategoryFactory) -> None:
     author = _make_user(db)
-    targeted = _make_thread(db, author, score=10, age_days=1, hot_score_value=SENTINEL)
-    untouched = _make_thread(db, author, score=10, age_days=1, hot_score_value=SENTINEL)
+    category_id = categories.create()
+    targeted = _make_thread(db, author, category_id, score=10, age_days=1, hot_score_value=SENTINEL)
+    untouched = _make_thread(
+        db, author, category_id, score=10, age_days=1, hot_score_value=SENTINEL
+    )
     db.flush()
 
     hot_score.handle(db, {"thread_ids": [targeted.id]})
@@ -93,10 +102,13 @@ def test_payload_thread_ids_restricts_the_update(db: Session) -> None:
     assert untouched_row.hot_score == SENTINEL
 
 
-def test_soft_deleted_threads_are_not_touched(db: Session) -> None:
+def test_soft_deleted_threads_are_not_touched(db: Session, categories: CategoryFactory) -> None:
     author = _make_user(db)
-    deleted = _make_thread(db, author, score=10, age_days=1, hot_score_value=SENTINEL, deleted=True)
-    live = _make_thread(db, author, score=10, age_days=1, hot_score_value=SENTINEL)
+    category_id = categories.create()
+    deleted = _make_thread(
+        db, author, category_id, score=10, age_days=1, hot_score_value=SENTINEL, deleted=True
+    )
+    live = _make_thread(db, author, category_id, score=10, age_days=1, hot_score_value=SENTINEL)
     db.flush()
 
     hot_score.handle(db, {"thread_ids": None})
@@ -109,9 +121,14 @@ def test_soft_deleted_threads_are_not_touched(db: Session) -> None:
     assert live_row.hot_score != SENTINEL
 
 
-def test_locked_threads_stay_live_and_are_recomputed(db: Session) -> None:
+def test_locked_threads_stay_live_and_are_recomputed(
+    db: Session, categories: CategoryFactory
+) -> None:
     author = _make_user(db)
-    locked = _make_thread(db, author, score=7, age_days=2, hot_score_value=SENTINEL, is_locked=True)
+    category_id = categories.create()
+    locked = _make_thread(
+        db, author, category_id, score=7, age_days=2, hot_score_value=SENTINEL, is_locked=True
+    )
     db.flush()
 
     hot_score.handle(db, {"thread_ids": None})
@@ -122,9 +139,10 @@ def test_locked_threads_stay_live_and_are_recomputed(db: Session) -> None:
     assert locked_row.hot_score != SENTINEL
 
 
-def test_empty_thread_ids_updates_nothing(db: Session) -> None:
+def test_empty_thread_ids_updates_nothing(db: Session, categories: CategoryFactory) -> None:
     author = _make_user(db)
-    thread = _make_thread(db, author, score=10, age_days=1, hot_score_value=SENTINEL)
+    category_id = categories.create()
+    thread = _make_thread(db, author, category_id, score=10, age_days=1, hot_score_value=SENTINEL)
     db.flush()
 
     hot_score.handle(db, {"thread_ids": []})
@@ -141,9 +159,10 @@ def test_handler_is_registered_for_the_job_kind() -> None:
     assert HANDLERS["thread.hot_score"] is hot_score.handle
 
 
-def test_unknown_thread_ids_do_not_raise(db: Session) -> None:
+def test_unknown_thread_ids_do_not_raise(db: Session, categories: CategoryFactory) -> None:
     author = _make_user(db)
-    thread = _make_thread(db, author, score=10, age_days=1, hot_score_value=SENTINEL)
+    category_id = categories.create()
+    thread = _make_thread(db, author, category_id, score=10, age_days=1, hot_score_value=SENTINEL)
     db.flush()
 
     hot_score.handle(db, {"thread_ids": [thread.id, 10**9]})
