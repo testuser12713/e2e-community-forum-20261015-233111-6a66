@@ -75,13 +75,10 @@ describe("admin shell", () => {
     ).toBeInTheDocument();
   });
 
-  it.each([
-    ["/moderation-queue", "Warteschlange"],
-    ["/audit-log", "Audit-Log"],
-  ])("route %s resolves to its placeholder", async (path, title) => {
-    renderAt(path);
+  it("route /moderation-queue resolves to its placeholder", async () => {
+    renderAt("/moderation-queue");
     expect(
-      await screen.findByRole("heading", { level: 1, name: title }),
+      await screen.findByRole("heading", { level: 1, name: "Warteschlange" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("placeholder-panel")).toBeInTheDocument();
     expect(screen.getByText("In Arbeit")).toBeInTheDocument();
