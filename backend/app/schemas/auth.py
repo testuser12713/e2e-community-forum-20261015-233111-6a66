@@ -69,3 +69,19 @@ class LoginInput(BaseModel):
 
     username_or_email: str
     password: str
+
+
+class ChangePasswordInput(BaseModel):
+    """``POST /api/v1/auth/change-password`` body.
+
+    The new password is held to the same policy as registration, so a weak one
+    answers 422 with a field-level message before the service is reached.
+    """
+
+    current_password: str
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def _check_new_password(cls, value: str) -> str:
+        return validate_password_policy(value)
