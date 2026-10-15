@@ -29,6 +29,7 @@ export default function CategoryForm({
   const [submitted, setSubmitted] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setName(initial?.name ?? "");
@@ -38,6 +39,7 @@ export default function CategoryForm({
     setSlugTouched(Boolean(initial));
     setSubmitted(false);
     setError(null);
+    setFieldErrors({});
   }, [initial]);
 
   const nameMissing = submitted && name.trim().length === 0;
@@ -48,6 +50,7 @@ export default function CategoryForm({
     event.preventDefault();
     setSubmitted(true);
     setError(null);
+    setFieldErrors({});
     if (name.trim().length === 0 || effectiveSlug.length === 0) {
       return;
     }
@@ -60,11 +63,19 @@ export default function CategoryForm({
         position: Number.isFinite(Number(position)) ? Number(position) : 0,
       });
     } catch (err) {
-      setError(
-        err instanceof ApiError
-          ? err.message
-          : "Speichern der Kategorie fehlgeschlagen.",
-      );
+      if (err instanceof ApiError) {
+        const details = Array.isArray(err.details) ? err.details : [];
+        const mapped: Record<string, string> = {};
+        for (const detail of details) {
+          if (detail && typeof detail.field === "string") {
+            mapped[detail.field] = detail.message;
+          }
+        }
+        setFieldErrors(mapped);
+        setError(Object.keys(mapped).length > 0 ? null : err.message);
+      } else {
+        setError("Speichern der Kategorie fehlgeschlagen.");
+      }
     } finally {
       setPending(false);
     }
@@ -80,9 +91,9 @@ export default function CategoryForm({
           onChange={(event) => setName(event.target.value)}
           className="h-11 rounded-md border border-border bg-surface px-3 text-[15px] text-fg"
         />
-        {nameMissing && (
+        {(nameMissing || fieldErrors.name) && (
           <span role="alert" className="text-[13px] text-danger">
-            Bitte einen Namen angeben.
+            {fieldErrors.name ?? "Bitte einen Namen angeben."}
           </span>
         )}
       </label>
@@ -98,9 +109,9 @@ export default function CategoryForm({
           }}
           className="h-11 rounded-md border border-border bg-surface px-3 text-[15px] text-fg"
         />
-        {slugMissing && (
+        {(slugMissing || fieldErrors.slug) && (
           <span role="alert" className="text-[13px] text-danger">
-            Bitte einen Slug angeben.
+            {fieldErrors.slug ?? "Bitte einen Slug angeben."}
           </span>
         )}
       </label>
