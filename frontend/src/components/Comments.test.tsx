@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
+import { API_BASE_URL } from "../api/client";
 import type { CommentNode } from "../api/types";
 
 vi.mock("../context/AuthContext", () => ({
@@ -188,7 +189,9 @@ describe("CommentTree", () => {
     const postCall = fetchMock.mock.calls.find(
       (call) => (call[1] as RequestInit | undefined)?.method === "POST",
     );
-    expect(String(postCall?.[0])).toBe("/api/v1/threads/1/comments");
+    expect(String(postCall?.[0])).toBe(
+      `${API_BASE_URL}/api/v1/threads/1/comments`,
+    );
     expect(JSON.parse(String((postCall?.[1] as RequestInit).body))).toEqual({
       body: "Meine Antwort",
       parent_id: 1,
