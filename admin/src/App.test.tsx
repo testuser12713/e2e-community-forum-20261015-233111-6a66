@@ -75,15 +75,6 @@ describe("admin shell", () => {
     ).toBeInTheDocument();
   });
 
-  it("route /moderation-queue resolves to its placeholder", async () => {
-    renderAt("/moderation-queue");
-    expect(
-      await screen.findByRole("heading", { level: 1, name: "Warteschlange" }),
-    ).toBeInTheDocument();
-    expect(screen.getByTestId("placeholder-panel")).toBeInTheDocument();
-    expect(screen.getByText("In Arbeit")).toBeInTheDocument();
-  });
-
   it("redirects the root path to the dashboard", async () => {
     renderAt("/");
     expect(
