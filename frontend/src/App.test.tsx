@@ -55,10 +55,8 @@ describe("forum shell", () => {
   // Only routes that are still placeholders. /new and /t/:id/edit are
   // implemented by the thread editor and are covered by its own test file.
   const routes: Array<[string, string]> = [
-    ["/", "Startseite"],
     ["/login", "Anmelden"],
     ["/register", "Registrieren"],
-    ["/c/allgemein", "Kategorie"],
     ["/t/42", "Thread"],
     ["/search", "Suche"],
     ["/u/alice", "Profil"],
