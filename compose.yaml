@@ -1,0 +1,28 @@
+# PostgreSQL for the community forum API (and worker).
+#
+#   docker compose up -d
+#
+# Then export the connection string and start the API:
+#
+#   export DATABASE_URL="postgresql://app@localhost:5432/app"
+#   cd backend && uvicorn app.main:app --port 8000
+services:
+  db:
+    image: docker.io/library/postgres:18.6-trixie
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_DB: app
+      # Local development only: trust connections from the compose network.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - forum_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  forum_pgdata:

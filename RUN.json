@@ -125,6 +125,63 @@
           "dev": "${service:api.origin}"
         }
       }
+    },
+    {
+      "name": "api",
+      "dir": "backend",
+      "stack": "python",
+      "kind": "server",
+      "install": [
+        [
+          "${python}",
+          "-m",
+          "pip",
+          "install",
+          "-q",
+          "-r",
+          "requirements.txt"
+        ]
+      ],
+      "start": [
+        "${python}",
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "${PORT}"
+      ],
+      "port": 8000,
+      "port_env": "PORT",
+      "health": {
+        "path": "/health",
+        "expect_status": [
+          200
+        ]
+      },
+      "test": [
+        [
+          "${python}",
+          "-m",
+          "pytest"
+        ]
+      ],
+      "env": {
+        "DATABASE_URL": {
+          "dev": "${service:db.url}"
+        },
+        "SECRET_KEY": {
+          "generate": "hex",
+          "bytes": 32
+        },
+        "CORS_ORIGINS": {
+          "dev": "${service:web.origin},${service:admin.origin}"
+        },
+        "RATE_LIMIT_PER_MINUTE": {
+          "dev": "30"
+        }
+      }
     }
   ]
 }
