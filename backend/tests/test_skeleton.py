@@ -146,9 +146,16 @@ def test_markdown_is_sanitised() -> None:
 
 @pytest.mark.parametrize("method,path", CONTRACT_ROUTES)
 def test_contract_route_is_not_a_404(client: TestClient, method: str, path: str) -> None:
-    """Every contract route is wired (it may answer 501, but never 404)."""
-    probe = path
-    for name in ("{username}", "{slug}", "{id}"):
-        probe = probe.replace(name, "1")
-    response = client.request(method.upper(), probe)
+    """A parameterless contract route is wired (it never answers 404).
+
+    Routes carrying a path parameter are skipped: once such a route is real, a
+    well-formed probe for a missing resource legitimately answers 404 (the
+    contract requires e.g. ``GET /api/v1/categories/{slug}`` to answer 404 for
+    an unknown slug). Their wiring is already proven by
+    ``test_openapi_lists_every_contract_route`` above, which reads the route
+    table instead of a request.
+    """
+    if "{" in path:
+        pytest.skip("parameterised route: 404 is a valid answer for a missing resource")
+    response = client.request(method.upper(), path)
     assert response.status_code != 404
