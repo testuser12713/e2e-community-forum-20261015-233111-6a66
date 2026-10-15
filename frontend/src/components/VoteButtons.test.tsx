@@ -3,7 +3,7 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { VoteButtons, formatScore, type VoteButtonsProps } from "./VoteButtons";
-import { setAccessToken } from "../api/client";
+import { API_BASE_URL, setAccessToken } from "../api/client";
 
 function jsonResponse(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), {
@@ -71,7 +71,7 @@ describe("VoteButtons", () => {
     );
 
     const called = fetchMock.mock.calls[0];
-    expect(String(called[0])).toBe("/api/v1/threads/7/vote");
+    expect(String(called[0])).toBe(`${API_BASE_URL}/api/v1/threads/7/vote`);
     expect((called[1] as RequestInit).method).toBe("POST");
     expect(JSON.parse((called[1] as RequestInit).body as string)).toEqual({
       value: 1,
@@ -112,7 +112,7 @@ describe("VoteButtons", () => {
       "false",
     );
     expect(String(fetchMock.mock.calls[0][0])).toBe(
-      "/api/v1/comments/3/vote",
+      `${API_BASE_URL}/api/v1/comments/3/vote`,
     );
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
