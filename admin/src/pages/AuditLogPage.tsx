@@ -273,8 +273,8 @@ export default function AuditLogPage() {
   }
 
   return (
-    <section className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
+    <section className="flex flex-col">
+      <div className="mb-8 flex flex-col gap-1">
         <h1 className="text-2xl font-semibold text-fg">Audit-Log</h1>
         <p className="max-w-[68ch] text-sm text-fg-muted">
           Protokoll aller Moderations- und Admin-Aktionen mit Akteur, Ziel und
@@ -283,8 +283,11 @@ export default function AuditLogPage() {
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
-        <label className="flex flex-col gap-1 text-sm font-medium text-fg">
+      <div
+        data-testid="audit-filters"
+        className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end"
+      >
+        <label className="flex flex-col gap-1 text-[13px] font-medium text-fg-muted">
           Akteur-ID
           <input
             type="number"
@@ -295,11 +298,11 @@ export default function AuditLogPage() {
               onFilterChange(() => setActor(event.target.value))
             }
             placeholder="z. B. 3"
-            className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[15px] text-fg placeholder:text-fg-subtle focus:border-accent sm:w-32"
+            className="h-9 w-full rounded-full border border-border bg-surface px-4 text-[15px] text-fg placeholder:text-fg-subtle focus:border-accent sm:w-[320px]"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-fg">
+        <label className="flex flex-col gap-1 text-[13px] font-medium text-fg-muted">
           Aktion
           <input
             type="search"
@@ -308,28 +311,44 @@ export default function AuditLogPage() {
               onFilterChange(() => setAction(event.target.value))
             }
             placeholder="z. B. thread.pin"
-            className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[15px] text-fg placeholder:text-fg-subtle focus:border-accent sm:w-56"
+            className="h-9 w-full rounded-full border border-border bg-surface px-4 text-[15px] text-fg placeholder:text-fg-subtle focus:border-accent sm:w-[320px]"
           />
         </label>
 
-        <label className="flex flex-col gap-1 text-sm font-medium text-fg">
+        <label className="flex flex-col gap-1 text-[13px] font-medium text-fg-muted">
           Zieltyp
-          <select
-            value={targetType}
-            onChange={(event) =>
-              onFilterChange(() =>
-                setTargetType(event.target.value as AuditTargetType | ""),
-              )
-            }
-            className="h-11 w-full rounded-md border border-border bg-surface px-3 text-[15px] text-fg focus:border-accent sm:w-44"
-          >
-            <option value="">Alle</option>
-            {TARGET_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <span className="relative block w-full sm:w-[320px]">
+            <select
+              value={targetType}
+              onChange={(event) =>
+                onFilterChange(() =>
+                  setTargetType(event.target.value as AuditTargetType | ""),
+                )
+              }
+              className="h-9 w-full appearance-none rounded-full border border-border bg-surface pl-4 pr-10 text-[15px] text-fg focus:border-accent"
+            >
+              <option value="">Alle</option>
+              {TARGET_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              width="16"
+              height="16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-fg-muted"
+            >
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </span>
         </label>
       </div>
 
@@ -344,19 +363,19 @@ export default function AuditLogPage() {
               <table className="w-full min-w-[860px] border-collapse text-left">
                 <thead>
                   <tr className="h-10 bg-bg-subtle">
-                    <th className="px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
+                    <th className="border-b border-border px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
                       Zeitpunkt
                     </th>
-                    <th className="px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
+                    <th className="border-b border-border px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
                       Akteur
                     </th>
-                    <th className="px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
+                    <th className="border-b border-border px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
                       Aktion
                     </th>
-                    <th className="px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
+                    <th className="border-b border-border px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
                       Ziel
                     </th>
-                    <th className="px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
+                    <th className="border-b border-border px-4 text-xs font-medium uppercase tracking-[0.02em] text-fg-muted">
                       Metadaten
                     </th>
                   </tr>
