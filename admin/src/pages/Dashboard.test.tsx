@@ -107,4 +107,33 @@ describe("DashboardPage", () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId("dashboard-error")).not.toBeInTheDocument();
   });
+
+  it("shows the German signed-out state with a sign-in button on 401", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse(401, {
+          error: {
+            code: "unauthorized",
+            message: "Not authenticated",
+            details: null,
+          },
+        }),
+      ),
+    );
+
+    renderDashboard();
+
+    expect(
+      await screen.findByTestId("dashboard-not-authenticated"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Nicht angemeldet")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Anmelden" }),
+    ).toBeInTheDocument();
+    // The raw English server string is never shown.
+    expect(screen.queryByText("Not authenticated")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-error")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-not-authorised")).not.toBeInTheDocument();
+  });
 });
