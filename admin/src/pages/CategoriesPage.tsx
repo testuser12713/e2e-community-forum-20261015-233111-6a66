@@ -246,17 +246,12 @@ export default function CategoriesPage() {
                 className="flex flex-wrap items-center gap-3 px-4 py-3 md:px-6"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[15px] font-semibold text-fg">
-                      {category.name}
-                    </span>
-                    <span className="rounded-full border border-border bg-bg-subtle px-2 py-0.5 text-xs font-medium text-fg-muted">
-                      {category.slug}
-                    </span>
-                    <span className="text-xs tabular-nums text-fg-subtle">
-                      Position {category.position}
-                    </span>
-                  </div>
+                  <span className="block text-[17px] font-semibold text-fg">
+                    {category.name}
+                  </span>
+                  <span className="block text-[13px] text-fg-muted">
+                    Position {index + 1}
+                  </span>
                   {category.description && (
                     <p className="mt-1 max-w-[68ch] text-[13px] text-fg-muted">
                       {category.description}
@@ -264,14 +259,14 @@ export default function CategoriesPage() {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-3">
                   <button
                     type="button"
                     aria-label={`${category.name} nach oben`}
                     title="Nach oben"
                     disabled={index === 0}
                     onClick={() => void move(index, -1)}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 hover:bg-bg-subtle hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+                    className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 after:absolute after:-inset-1.5 after:content-[''] hover:bg-bg-subtle hover:text-fg disabled:cursor-not-allowed disabled:text-fg-subtle disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-fg-subtle"
                   >
                     <UpIcon />
                   </button>
@@ -281,7 +276,7 @@ export default function CategoriesPage() {
                     title="Nach unten"
                     disabled={index === items.length - 1}
                     onClick={() => void move(index, 1)}
-                    className="inline-flex h-11 w-11 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 hover:bg-bg-subtle hover:text-fg disabled:cursor-not-allowed disabled:opacity-40"
+                    className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-fg-muted transition-colors duration-100 after:absolute after:-inset-1.5 after:content-[''] hover:bg-bg-subtle hover:text-fg disabled:cursor-not-allowed disabled:text-fg-subtle disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-fg-subtle"
                   >
                     <DownIcon />
                   </button>
