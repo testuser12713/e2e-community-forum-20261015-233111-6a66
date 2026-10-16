@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import Navbar from "./Navbar";
 
@@ -61,6 +62,62 @@ export function PlaceholderPanel({
         </p>
       </div>
     </section>
+  );
+}
+
+/** Default 32px line icon for an empty state — a calm, neutral inbox. */
+function EmptyStateIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 24 24"
+      width="32"
+      height="32"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12h4l2 3h6l2-3h4" />
+      <path d="M5.5 4.5h13l2.5 7.5v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z" />
+    </svg>
+  );
+}
+
+/**
+ * DESIGN.md EmptyState: centred block, padding 48px 24px (px-6 py-12), a 32px
+ * line icon in fg-subtle, title 16px/600, hint 13px fg-muted (max 2 lines) and
+ * an optional secondary action. Used for empty lists, empty search results and
+ * out-of-range pages — a page state, never a disabled control.
+ */
+export function EmptyState({
+  title,
+  hint,
+  icon,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  icon?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div
+      data-testid="empty-state"
+      className="flex flex-col items-center gap-3 px-6 py-12 text-center"
+    >
+      <span data-testid="empty-state-icon" className="text-fg-subtle">
+        {icon ?? <EmptyStateIcon />}
+      </span>
+      <h1 className="text-base font-semibold text-fg">{title}</h1>
+      {hint ? (
+        <p className="line-clamp-2 max-w-[48ch] text-[13px] text-fg-muted">
+          {hint}
+        </p>
+      ) : null}
+      {action ? <div className="mt-1">{action}</div> : null}
+    </div>
   );
 }
 
