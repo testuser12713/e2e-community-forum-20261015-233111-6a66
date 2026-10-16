@@ -7,9 +7,18 @@ import {
   within,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AdminUserOut } from "../api/types";
 import UsersPage from "./UsersPage";
+
+function renderPage() {
+  return render(
+    <MemoryRouter>
+      <UsersPage />
+    </MemoryRouter>,
+  );
+}
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -136,7 +145,7 @@ afterEach(() => {
 describe("admin users page", () => {
   it("filters the list by username and e-mail", async () => {
     const user = userEvent.setup();
-    render(<UsersPage />);
+    renderPage();
 
     await screen.findByText("Alice");
     expect(screen.getByText("Bob")).toBeInTheDocument();
@@ -152,7 +161,7 @@ describe("admin users page", () => {
 
   it("changes a role and reflects it in the row", async () => {
     const user = userEvent.setup();
-    render(<UsersPage />);
+    renderPage();
 
     await screen.findByText("Bob");
     const row = screen.getByTestId("user-row-2");
@@ -171,7 +180,7 @@ describe("admin users page", () => {
 
   it("shows reason and expiry in the list after banning", async () => {
     const user = userEvent.setup();
-    render(<UsersPage />);
+    renderPage();
 
     await screen.findByText("Bob");
     await user.click(
@@ -199,7 +208,7 @@ describe("admin users page", () => {
         ? { ...entry, is_banned: true, ban_reason: "Spam" }
         : entry,
     );
-    render(<UsersPage />);
+    renderPage();
 
     await screen.findByText("Bob");
     await user.click(
@@ -217,7 +226,7 @@ describe("admin users page", () => {
 
   it("shows no validation feedback on an untouched ban dialog", async () => {
     const user = userEvent.setup();
-    render(<UsersPage />);
+    renderPage();
 
     await screen.findByText("Bob");
     await user.click(
@@ -231,5 +240,35 @@ describe("admin users page", () => {
     expect(
       screen.queryByText("Bitte einen Grund angeben."),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the German signed-out state instead of the raw auth message on 401", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        jsonResponse(401, {
+          error: {
+            code: "unauthorized",
+            message: "Not authenticated",
+            details: null,
+          },
+        }),
+      ),
+    );
+
+    renderPage();
+
+    expect(
+      await screen.findByTestId("users-not-authenticated"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Nicht angemeldet")).toBeInTheDocument();
+    expect(
+      screen.getByText("Bitte melde dich an, um die Nutzerliste zu sehen."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Anmelden" }),
+    ).toBeInTheDocument();
+    // The raw English server string is never shown.
+    expect(screen.queryByText("Not authenticated")).not.toBeInTheDocument();
   });
 });

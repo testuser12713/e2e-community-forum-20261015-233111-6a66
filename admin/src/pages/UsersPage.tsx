@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   listAdminUsers,
   setUserRole,
@@ -260,6 +261,70 @@ function Pagination({ page, pages, total, onPage }: PaginationProps) {
   );
 }
 
+/* ------------------------------------------------------------------ errors */
+
+interface PageError {
+  status: number;
+  title: string;
+  message: string;
+}
+
+/*
+ * The admin UI never surfaces a raw server string. A 401 becomes the German
+ * signed-out state with a secondary 'Anmelden' button (same rendering as the
+ * dashboard); every other envelope code is mapped to German wording, with a
+ * caller-provided fallback for anything unmapped.
+ */
+const ERROR_MESSAGE_BY_CODE: Record<string, string> = {
+  forbidden: "Du hast keine Berechtigung für diese Aktion.",
+  not_found: "Die angeforderte Ressource wurde nicht gefunden.",
+  conflict: "Die Anfrage steht im Konflikt mit dem aktuellen Zustand.",
+  rate_limited: "Zu viele Anfragen. Bitte versuche es später erneut.",
+  validation_error: "Die Eingabe ist ungültig.",
+};
+
+function toPageError(err: unknown, title: string, fallback: string): PageError {
+  if (err instanceof ApiError) {
+    if (err.status === 401) {
+      return {
+        status: 401,
+        title: "Nicht angemeldet",
+        message: "Bitte melde dich an, um die Nutzerliste zu sehen.",
+      };
+    }
+    return {
+      status: err.status,
+      title,
+      message: ERROR_MESSAGE_BY_CODE[err.code] ?? fallback,
+    };
+  }
+  return { status: 0, title, message: fallback };
+}
+
+function NotAuthenticatedState() {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      role="alert"
+      data-testid="users-not-authenticated"
+      className="rounded-lg border border-danger bg-danger-soft p-4 text-sm text-fg md:p-5"
+    >
+      <p className="font-semibold">Nicht angemeldet</p>
+      <p className="mt-1 text-fg-muted">
+        Bitte melde dich an, um die Nutzerliste zu sehen.
+      </p>
+      <button
+        type="button"
+        onClick={() => navigate("/login")}
+        className="mt-3 inline-flex min-h-11 items-center rounded-md border border-border bg-surface px-[18px] py-[10px] text-[15px] font-semibold text-fg transition-colors duration-100 hover:border-border-strong hover:bg-bg-subtle"
+      >
+        Anmelden
+      </button>
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------------- page */
 
 export default function UsersPage() {
@@ -268,7 +333,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(1);
   const [data, setData] = useState<Page<AdminUserOut> | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PageError | null>(null);
   const [banTarget, setBanTarget] = useState<AdminUserOut | null>(null);
   const [roleTarget, setRoleTarget] = useState<AdminUserOut | null>(null);
 
@@ -290,9 +355,11 @@ export default function UsersPage() {
       .catch((err) => {
         if (active) {
           setError(
-            err instanceof ApiError
-              ? err.message
-              : "Nutzer konnten nicht geladen werden.",
+            toPageError(
+              err,
+              "Nutzer konnten nicht geladen werden",
+              "Nutzer konnten nicht geladen werden.",
+            ),
           );
           setLoading(false);
         }
@@ -321,9 +388,7 @@ export default function UsersPage() {
       replaceUser(updated);
     } catch (err) {
       setError(
-        err instanceof ApiError
-          ? err.message
-          : "Entsperren fehlgeschlagen.",
+        toPageError(err, "Aktion fehlgeschlagen", "Entsperren fehlgeschlagen."),
       );
     }
   }
@@ -369,15 +434,19 @@ export default function UsersPage() {
         </button>
       </form>
 
-      {error && (
+      {error?.status === 401 ? (
+        <NotAuthenticatedState />
+      ) : error ? (
         <div
           role="alert"
           className="rounded-md border border-danger bg-danger-soft px-4 py-3 text-sm text-fg"
         >
-          {error}
+          <p className="font-semibold">{error.title}</p>
+          <p className="mt-1 text-fg-muted">{error.message}</p>
         </div>
-      )}
+      ) : null}
 
+      {!error && (
       <div className="rounded-lg border border-border bg-surface">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] border-collapse text-left">
@@ -481,8 +550,9 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+      )}
 
-      {data && items.length > 0 && (
+      {!error && data && items.length > 0 && (
         <Pagination
           page={data.page}
           pages={data.pages}
