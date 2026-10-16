@@ -1,46 +1,50 @@
 import type { KeyboardEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { formatCount, formatRelativeTime, formatScore } from "../lib/format";
-import type { ThreadSummary } from "../api/types";
+import { formatCount, formatRelativeTime } from "../lib/format";
+import type { ThreadSummary, VoteOut } from "../api/types";
+import { useAuth } from "../context/AuthContext";
+import { VoteButtons } from "./VoteButtons";
 
 export interface ThreadCardProps {
   thread: ThreadSummary;
-  onVote?: (value: 1 | -1 | 0) => void;
+  /** Called with the server's answer after a successful vote on the thread. */
+  onVote?: (out: VoteOut) => void;
   onTagClick?: (tag: string) => void;
-}
-
-function UpArrow() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 5l7 8h-4v6h-6v-6H5z" fill="currentColor" />
-    </svg>
-  );
-}
-
-function DownArrow() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 19l-7-8h4V5h6v6h4z" fill="currentColor" />
-    </svg>
-  );
 }
 
 /**
  * A single row in a thread list (DESIGN.md §ThreadListItem): vote column,
  * title with pinned/locked/removed badges, the category · author · time ·
  * comment-count meta line and clickable tag chips.
+ *
+ * The vote column carries the shared VoteControl permanently — never a bare
+ * score and never a hover reveal. The control performs its own request through
+ * VoteButtons, so it is live wherever a ThreadCard is rendered; where it cannot
+ * act (banned users, one's own thread) it is rendered visibly disabled with the
+ * reason as a tooltip, per AC-43.
  */
 export function ThreadCard({ thread, onVote, onTagClick }: ThreadCardProps) {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const threadPath = `/t/${thread.id}`;
-  const votable = typeof onVote === "function";
+
+  const isOwnThread = user != null && thread.author.id === user.id;
+  const isBanned = user?.is_banned === true;
+  const voteDisabled = isBanned || isOwnThread;
+  const voteDisabledReason = isBanned
+    ? `Gesperrt: ${user?.ban_reason ?? "Ohne Grund"}`
+    : isOwnThread
+      ? "Eigene Inhalte können nicht bewertet werden."
+      : undefined;
 
   function openThread() {
     navigate(threadPath);
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLLIElement>) {
-    if (event.key === "Enter") {
+    // Only the row itself opens the thread — a key press on the nested vote
+    // arrows must not also navigate away.
+    if (event.key === "Enter" && event.target === event.currentTarget) {
       event.preventDefault();
       openThread();
     }
@@ -58,40 +62,16 @@ export function ThreadCard({ thread, onVote, onTagClick }: ThreadCardProps) {
         (thread.is_pinned ? "bg-accent-soft" : "hover:bg-bg-subtle")
       }
     >
-      <div className="flex w-10 shrink-0 flex-col items-center gap-0.5">
-        {votable && (
-          <button
-            type="button"
-            className="icon-btn h-8 w-8 p-0"
-            aria-label="Hochstimmen"
-            onClick={(event) => {
-              event.stopPropagation();
-              onVote?.(1);
-            }}
-          >
-            <UpArrow />
-          </button>
-        )}
-        <span
-          className="text-[15px] font-semibold tabular-nums"
-          title="Punktzahl"
-          aria-label={`Punktzahl ${formatScore(thread.score)}`}
-        >
-          {formatScore(thread.score)}
-        </span>
-        {votable && (
-          <button
-            type="button"
-            className="icon-btn h-8 w-8 p-0"
-            aria-label="Herunterstimmen"
-            onClick={(event) => {
-              event.stopPropagation();
-              onVote?.(-1);
-            }}
-          >
-            <DownArrow />
-          </button>
-        )}
+      <div className="w-10 shrink-0" onClick={(event) => event.stopPropagation()}>
+        <VoteButtons
+          targetType="thread"
+          targetId={thread.id}
+          score={thread.score}
+          value={0}
+          onVote={onVote}
+          disabled={voteDisabled}
+          disabledReason={voteDisabledReason}
+        />
       </div>
 
       <div className="min-w-0 flex-1">

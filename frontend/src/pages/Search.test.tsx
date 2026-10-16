@@ -4,6 +4,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
+vi.mock("../context/AuthContext", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 import SearchPage from "./SearchPage";
 import type { CategoryOut, Page, ThreadSummary } from "../api/types";
 
