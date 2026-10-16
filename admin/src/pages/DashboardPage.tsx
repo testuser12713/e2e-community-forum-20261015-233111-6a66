@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { getAdminStats } from "../api/admin";
 import { ApiError } from "../api/client";
 import type { AdminStats } from "../api/types";
@@ -9,9 +9,12 @@ import type { AdminStats } from "../api/types";
  *
  * Shows the six headline figures of GET /api/v1/admin/stats, each with its
  * German label, in a StatCard grid (DESIGN.md). While the request is in flight
- * a skeleton mirrors the card layout; a 403 renders the not-authorised state
- * and any other failure renders an Alert carrying the API's message, so the
- * page never stays blank. The open-reports card links to the moderation queue.
+ * a skeleton mirrors the card layout; a 401 renders the signed-out state with
+ * the German message 'Nicht angemeldet' and a secondary 'Anmelden' button, a
+ * 403 renders the not-authorised state and any other failure renders an Alert
+ * carrying the shared error envelope's wording, so the page never stays blank
+ * and never exposes a raw server string. The open-reports card links to the
+ * moderation queue.
  */
 
 const numberFormat = new Intl.NumberFormat("de-DE");
@@ -101,6 +104,30 @@ function NotAuthorisedState() {
   );
 }
 
+function NotAuthenticatedState() {
+  const navigate = useNavigate();
+
+  return (
+    <div
+      role="alert"
+      data-testid="dashboard-not-authenticated"
+      className="rounded-lg border border-danger bg-danger-soft p-4 text-sm text-fg md:p-5"
+    >
+      <p className="font-semibold">Nicht angemeldet</p>
+      <p className="mt-1 text-fg-muted">
+        Bitte melde dich an, um das Dashboard zu sehen.
+      </p>
+      <button
+        type="button"
+        onClick={() => navigate("/login")}
+        className="mt-3 inline-flex min-h-11 items-center rounded-md border border-border bg-surface px-[18px] py-[10px] text-[15px] font-semibold text-fg transition-colors duration-100 hover:border-border-strong hover:bg-bg-subtle"
+      >
+        Anmelden
+      </button>
+    </div>
+  );
+}
+
 function ErrorState({ message }: { message: string }) {
   return (
     <div
@@ -121,6 +148,7 @@ export default function DashboardPage() {
   });
 
   const isForbidden = error instanceof ApiError && error.status === 403;
+  const isUnauthorized = error instanceof ApiError && error.status === 401;
 
   return (
     <section className="flex flex-col gap-4 md:gap-6">
@@ -128,6 +156,8 @@ export default function DashboardPage() {
 
       {isPending ? (
         <StatGridSkeleton />
+      ) : isUnauthorized ? (
+        <NotAuthenticatedState />
       ) : isForbidden ? (
         <NotAuthorisedState />
       ) : error ? (
