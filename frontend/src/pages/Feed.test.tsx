@@ -4,6 +4,10 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+vi.mock("../context/AuthContext", () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 import HomePage from "./HomePage";
 import CategoryPage from "./CategoryPage";
 import type { CategoryOut, ThreadSummary, UserOut } from "../api/types";
@@ -148,7 +152,7 @@ describe("forum feed", () => {
 
     expect(await screen.findByText("Thread Neu 1")).toBeInTheDocument();
     expect(screen.getByText("Kommentare: 3")).toBeInTheDocument();
-    expect(screen.getByLabelText("Punktzahl +5")).toBeInTheDocument();
+    expect(screen.getByLabelText("Punktzahl: 5")).toBeInTheDocument();
 
     const meta = screen.getByText("Thread Neu 1").closest("li");
     expect(meta).not.toBeNull();
@@ -230,11 +234,13 @@ describe("forum feed", () => {
     expect(screen.getByRole("button", { name: "Zurück" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Weiter" })).toBeEnabled();
 
-    // The score is a read-only display, so no vote control pretends to work.
-    expect(screen.getByLabelText("Punktzahl +5")).toBeInTheDocument();
+    // Every thread row carries the always-visible vote control around its
+    // score, so a user always sees the way to vote.
+    expect(screen.getByLabelText("Punktzahl: 5")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hochstimmen" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Hochstimmen" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Runterstimmen" }),
+    ).toBeInTheDocument();
 
     // Category navigation is real links.
     expect(screen.getByRole("link", { name: "Technik" })).toHaveAttribute(
